@@ -5,10 +5,18 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>
+#include <unistd.h>
+#include <sstream>
+
 
 #define BACKLOG 10
 
-int main(int argc, int *argv[]){
+std::string messageStr(char* buf, int size) {
+    return std::string(buf, size);
+}
+
+
+int main(int argc, char **argv){
 
     int sock_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (sock_fd < 0) {
@@ -29,5 +37,41 @@ int main(int argc, int *argv[]){
         std::cerr << "Listen Failed: " << strerror(errno) << "\n";
     }
 
+
+    struct sockaddr_in client_addr;
+    int client_size = sizeof(client_addr);
+
+    int client_fd = accept(sock_fd, (struct sockaddr*)&client_addr, (socklen_t*)&client_size);
+    std::cout << "Client connected\n";
+
+
+
+    char buf[100];
+    int bytes_recieved = recv(client_fd, buf, 99, 0);
+
+
+    buf[bytes_recieved] = '\0'; //Adds null terminator to buffer
+    std::cout << "Bytes received: " << bytes_recieved<< "\n";
+    std::cout << "Client sent:\n" << buf << "\n";
+
+    std::string request = messageStr(buf, 100);
+    std::istringstream request_stream(request);
+    std::string method, path, version;
+    request_stream >> method >> path >> version;
+
+    std::cout << "Path: " << path << "\n";
+
+    if (path == "/") {
+        std::string aprove_res = "HTTP/1.1 200 OK\r\n\r\n";
+        send(client_fd, aprove_res.c_str(), aprove_res.size(), 0);
+    } else {
+        std::string aprove_res = "HTTP/1.1 404 Not Found\r\n\r\n";
+        send(client_fd, aprove_res.c_str(), aprove_res.size(), 0);
+    }
+
+
+    close(client_fd);
+    close(sock_fd);
+    
     return 0;
 }
