@@ -62,6 +62,7 @@ std::string receive_request(int client_fd) {
     return std::string(buf, bytes_received);
 }
 
+//Function to Parse Http
 std::unordered_map<std::string, std::string> parse(std::string request) {
     std::unordered_map<std::string, std::string> parsed_response;
     std::string line;
@@ -82,7 +83,27 @@ std::unordered_map<std::string, std::string> parse(std::string request) {
     //     std::cout << "Key: " << pair.first << " Value: " << pair.second << "\n";
     // }
     return parsed_response;
+}
 
+void send_response(std::unordered_map<std::string, std::string> &parsed_resp, int client, std::string path) {
+    std::string response = "";
+
+    if (path == "/") {
+        response = "HTTP/1.1 200 OK\r\n\r\n";
+    } else if (path == "/user-agent" && parsed_resp.count("User-Agent") != 0) {
+        response = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: " 
+                                + std::to_string(parsed_resp["User-Agent"].length()) 
+                                + "\r\n\r\n" 
+                                + parsed_resp["User-Agent"];
+    } else if (path.find("/echo/") != std::string::npos){
+        response = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: " 
+                                + std::to_string(path.length() - 6) 
+                                + "\r\n\r\n" 
+                                + path.substr(6);
+    } else {
+        response = "HTTP/1.1 404 Not Found\r\n\r\n";
+    }
+    send(client, response.c_str(), response.size(), 0);
 }
 
 int main(int argc, char **argv){
@@ -98,25 +119,27 @@ int main(int argc, char **argv){
 
     std::unordered_map<std::string, std::string> parsed_resp = parse(request); 
 
-    if (path == "/" && parsed_resp.count("User-Agent") == 0) {
-        std::string aprove_res = "HTTP/1.1 200 OK\r\n\r\n";
-        send(client_fd, aprove_res.c_str(), aprove_res.size(), 0);
-    } else if (path.find("/echo/") != std::string::npos){
-        std::string aprove_res = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: " 
-                                + std::to_string(path.length() - 6) 
-                                + "\r\n\r\n" 
-                                + path.substr(6);
-        send(client_fd, aprove_res.c_str(), aprove_res.size(), 0);
-    } else if (parsed_resp.count("User-Agent") != 0) {
-        std::string aprove_res = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: " 
-                                + std::to_string(parsed_resp["User-Agent"].length()) 
-                                + "\r\n\r\n" 
-                                + parsed_resp["User-Agent"];
-        send(client_fd, aprove_res.c_str(), aprove_res.size(), 0);
-    } else {
-        std::string aprove_res = "HTTP/1.1 404 Not Found\r\n\r\n";
-        send(client_fd, aprove_res.c_str(), aprove_res.size(), 0);
-    }
+
+    send_response(parsed_resp, client_fd, path);
+    // if (path == "/" && parsed_resp.count("User-Agent") == 0) {
+    //     std::string aprove_res = "HTTP/1.1 200 OK\r\n\r\n";
+    //     send(client_fd, aprove_res.c_str(), aprove_res.size(), 0);
+    // } else if (path.find("/echo/") != std::string::npos){
+    //     std::string aprove_res = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: " 
+    //                             + std::to_string(path.length() - 6) 
+    //                             + "\r\n\r\n" 
+    //                             + path.substr(6);
+    //     send(client_fd, aprove_res.c_str(), aprove_res.size(), 0);
+    // } else if (parsed_resp.count("User-Agent") != 0) {
+    //     std::string aprove_res = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: " 
+    //                             + std::to_string(parsed_resp["User-Agent"].length()) 
+    //                             + "\r\n\r\n" 
+    //                             + parsed_resp["User-Agent"];
+    //     send(client_fd, aprove_res.c_str(), aprove_res.size(), 0);
+    // } else {
+    //     std::string aprove_res = "HTTP/1.1 404 Not Found\r\n\r\n";
+    //     send(client_fd, aprove_res.c_str(), aprove_res.size(), 0);
+    // }
 
 
     close(client_fd);
