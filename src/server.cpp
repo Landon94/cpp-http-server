@@ -8,13 +8,8 @@
 #include <unistd.h>
 #include <sstream>
 #include <unordered_map>
+#include "server.h"
 
-
-#define BACKLOG 10
-
-std::string messageStr(char* buf, int size) {
-    return std::string(buf, size);
-}
 
 int create_server_socket() {
     int sock_fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -71,7 +66,7 @@ std::unordered_map<std::string, std::string> parse(std::string request) {
     getline(request_stream, line);
 
     while (getline(request_stream, line)) {
-        int split_location = line.find(':');
+        size_t split_location = line.find(':');
         if (split_location != std::string::npos) {
             std::string key = line.substr(0, split_location);
             std::string value = line.substr(split_location + 2);
@@ -104,46 +99,4 @@ void send_response(std::unordered_map<std::string, std::string> &parsed_resp, in
         response = "HTTP/1.1 404 Not Found\r\n\r\n";
     }
     send(client, response.c_str(), response.size(), 0);
-}
-
-int main(int argc, char **argv){
-    int sock_fd = create_server_socket();
-    int client_fd = accept_connection(sock_fd);
-   
-    std::string request = receive_request(client_fd);
-    std::istringstream request_stream(request);
-    std::string method, path, version;
-    request_stream >> method >> path >> version;
-
-    std::cout << "Path: " << path << "\n"; 
-
-    std::unordered_map<std::string, std::string> parsed_resp = parse(request); 
-
-
-    send_response(parsed_resp, client_fd, path);
-    // if (path == "/" && parsed_resp.count("User-Agent") == 0) {
-    //     std::string aprove_res = "HTTP/1.1 200 OK\r\n\r\n";
-    //     send(client_fd, aprove_res.c_str(), aprove_res.size(), 0);
-    // } else if (path.find("/echo/") != std::string::npos){
-    //     std::string aprove_res = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: " 
-    //                             + std::to_string(path.length() - 6) 
-    //                             + "\r\n\r\n" 
-    //                             + path.substr(6);
-    //     send(client_fd, aprove_res.c_str(), aprove_res.size(), 0);
-    // } else if (parsed_resp.count("User-Agent") != 0) {
-    //     std::string aprove_res = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: " 
-    //                             + std::to_string(parsed_resp["User-Agent"].length()) 
-    //                             + "\r\n\r\n" 
-    //                             + parsed_resp["User-Agent"];
-    //     send(client_fd, aprove_res.c_str(), aprove_res.size(), 0);
-    // } else {
-    //     std::string aprove_res = "HTTP/1.1 404 Not Found\r\n\r\n";
-    //     send(client_fd, aprove_res.c_str(), aprove_res.size(), 0);
-    // }
-
-
-    close(client_fd);
-    close(sock_fd);
-    
-    return 0;
 }
