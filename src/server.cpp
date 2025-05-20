@@ -48,10 +48,18 @@ int accept_connection(int sock_fd) {
 }
 
 std::string receive_request(int client_fd) {
-    char buf[100];
-    int bytes_received = recv(client_fd, buf, 99, 0);
+    std::string request;
+    char buf[1024];
+    size_t n;
+    int bytes_received = recv(client_fd, buf, 1023, 0);
 
-
+    // while ((n = recv(client_fd, buf, sizeof(buf)-1, 0)) > 0) {
+    //     request.append(buf , static_cast<int>(n));
+    //     if (request.find("\r\n\r\n") != std::string::npos) {
+    //         break;
+    //     }
+    // }
+    // return request;
     buf[bytes_received] = '\0'; //Adds null terminator to buffer
     std::cout << "Client sent:\n" << buf << "\n";
     return std::string(buf, bytes_received);
@@ -69,7 +77,11 @@ std::unordered_map<std::string, std::string> parse(std::string request) {
         size_t split_location = line.find(':');
         if (split_location != std::string::npos) {
             std::string key = line.substr(0, split_location);
-            std::string value = line.substr(split_location + 2);
+            // std::string value = line.substr(split_location + 2);
+            size_t start = split_location + 2;
+            std::string value = (start < line.size())
+                    ? line.substr(start)
+                    : "";
 
             parsed_response[key] = value;
         }
@@ -90,7 +102,7 @@ void send_response(std::unordered_map<std::string, std::string> &parsed_resp, in
                                 + std::to_string(parsed_resp["User-Agent"].length()) 
                                 + "\r\n\r\n" 
                                 + parsed_resp["User-Agent"];
-    } else if (path.find("/echo/") != std::string::npos){
+    } else if (path.rfind("/echo/", 0) == 0 && path.length() > 6){
         response = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: " 
                                 + std::to_string(path.length() - 6) 
                                 + "\r\n\r\n" 
