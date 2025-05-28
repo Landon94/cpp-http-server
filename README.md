@@ -26,3 +26,11 @@ curl http://localhost:8080/echo/hello
 
 curl http://localhost:8080/user-agent
 ```
+## Resources
+These sources provided helpul information for implementation of various parts of the project
+
+https://www.binarytides.com/multiple-socket-connections-fdset-select-linux/
+
+https://eli.thegreenplace.net/2017/concurrent-servers-part-2-threads/
+
+https://linux.die.net/man/2/select_tut
